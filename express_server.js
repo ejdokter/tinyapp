@@ -1,7 +1,8 @@
 const express = require("express");
 const app = express();
 const bodyParser = require('body-parser')
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+const e = require("express");
 
 const PORT = 8080; // default port 8080
 
@@ -123,9 +124,23 @@ app.post('/urls/:id', (req, res) => {
 })
 
 app.post('/login', (req, res) => {
-  // let username = users[req.body.id]
-  // res.cookie('user_id', username)
-  res.redirect('/register')
+  const email = req.body.email
+  const password = req.body.password
+
+  if(email === "" || email === "") {
+    res.status(400).send('Email and password cannot be blank')
+  } else if(emailExists(email) === false) {
+      res.status(400).send('No account associated with that email found')
+  } else {
+      const user_id = emailExists(email)
+      if(emailExists(email) && (password === users[user].password)) {
+        res.cookie()
+      }    
+  }
+
+
+
+  // res.redirect('/urls')
 })
 
 app.post('/logout', (req, res) => {
@@ -136,7 +151,6 @@ app.post('/logout', (req, res) => {
 app.post('/register', (req,res) => {
   const email = req.body.email
 
-  
   if(email === "" || email === "") {
     res.status(400).send('Email and password cannot be blank')
   } else if(emailExists(email)) {
