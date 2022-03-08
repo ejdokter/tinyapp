@@ -22,7 +22,7 @@ function generateRandomString() {
 function emailExists(email) {
   for (const user in users) {
     if(users[user].email === email){
-      return users[user].user_id
+      return users[user]
     }
   }
   return false
@@ -130,12 +130,15 @@ app.post('/login', (req, res) => {
   if(email === "" || email === "") {
     res.status(400).send('Email and password cannot be blank')
   } else if(emailExists(email) === false) {
-      res.status(400).send('No account associated with that email found')
+      res.status(403).send('No account associated with that email found')
   } else {
-      const user_id = emailExists(email)
-      if(emailExists(email) && (password === users[user].password)) {
-        res.cookie()
-      }    
+      const user = emailExists(email)
+      if(user.password !== password) {
+        res.status(403).send('Incorrect Password')
+      } else {
+          res.cookie('user_id', user.user_id)
+          res.redirect('/urls')
+      }  
   }
 
 
