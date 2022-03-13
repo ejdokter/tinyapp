@@ -28,16 +28,32 @@ function emailExists(email) {
   return false
 }
 
+function urlsForUser(id, urlDatabase) {
+  const urls = {}
+  for (const el in urlDatabase) {
+    if (urlDatabase[el].userID === id) {
+      urls[el] = urlDatabase[el]
+    }
+  }
+  return urls
+}
+
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": {
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "userRandomID"
+  },
+  "9sm5xK": {
+    longURL: "http://www.google.com",
+    userID: "user2RandomID"
+  }
 };
 
 const users = { 
   "userRandomID": {
     user_id: "userRandomID", 
     email: "user@example.com", 
-    password: "purple-monkey-dinosaur"
+    password: "123"
   },
  "user2RandomID": {
     user_id: "user2RandomID", 
@@ -59,32 +75,57 @@ app.get('/hello', (req, res) => {
 })
 
 app.get('/urls', (req, res) => {
-   const templateVars = { 
-     urls: urlDatabase, 
-     user: users[req.cookies['user_id']] 
+  const user = users[req.cookies.user_id]
+  if (!user) {
+    let templateVars = {
+      error: "Please Login to see URLs",
+      user: users[req.cookies.user_id]
     }
-   res.render('urls_index', templateVars)
+    res.status(400).render('error', templateVars)
+  } else {
+      let templateVars = { 
+        urls: urlsForUser(req.cookies.user_id, urlDatabase), 
+        user: users[req.cookies['user_id']] 
+    }
+    res.render('urls_index', templateVars)
+  }
 })
 
 app.get('/urls/new', (req, res) => {
   const templateVars = {
     user: users[req.cookies['user_id']]
   }
+  const user = req.cookies['user_id']
+  if (!user) {
+    res.redirect('/login')
+  }
   res.render('urls_new', templateVars)
 })
 
 app.get('/urls/:shortURL', (req, res) => {
-   const templateVars = { 
-     shortURL: req.params.shortURL, 
-     longURL: urlDatabase[req.params.shortURL],
-     user: users[req.cookies['user_id']]
+  const shortURL = req.params.shortURL
+  
+  if(!urlDatabase[shortURL]) {
+    let templateVars = {
+      error: "This url does not exist!",
+      user: users[req.cookies.user_id]
     }
-   const longURL = templateVars.longURL
-   res.render('urls_show', templateVars)
- })
+    res.status(400).render('error', templateVars)
+  }
+    
+  let templateVars = { 
+    shortURL: req.params.shortURL, 
+    longURL: urlDatabase[req.params.shortURL].longURL,
+    userID: req.cookies['user_id'],
+    user: users[req.cookies['user_id']]
+      }
+
+  res.render('urls_show', templateVars)
+  
+})
 
 app.get('/u/:shortURL', (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL]
+  const longURL = urlDatabase[req.params.shortURL].longURL
   res.redirect(longURL)
 })
 
@@ -105,22 +146,43 @@ app.get('/login', (req, res) => {
 })
 
 app.post('/urls', (req, res) => {
-  const newURL = generateRandomString()
-  urlDatabase[newURL] = req.body.longURL
-
-  res.redirect(`/urls/:${newURL}`)
+  const shortURL = generateRandomString()
+  const longURL = req.body.longURL
+  urlDatabase[shortURL] = {
+    longURL: longURL,
+    userID: req.cookies.user_id
+  }
+  res.redirect(`/urls/:${shortURL}`)
 })
 
 app.post('/urls/:shortURL/delete', (req, res) => {
-  const shortURL = req.params.shortURL
-  delete urlDatabase[shortURL]
-  res.redirect('/urls')
+  const userURLs = urlsForUser(req.cookies.user_id, urlDatabase)
+  if (Object.keys(userURLs).includes(req.params.id)) {
+    const shortURL = req.params.shortURL
+    delete urlDatabase[shortURL]
+    res.redirect('/urls')
+  } else {
+      let templateVars = {
+        error: "Only the owner can edit this URL",
+        user: users[req.cookies.user_id]
+    }
+      res.status(400).render('error', templateVars)
+  }
 })
 
 app.post('/urls/:id', (req, res) => {
-  const shortURL = req.params.id
-  urlDatabase[shortURL] = req.body.newURL
-  res.redirect('/urls')
+  const userURLs = urlsForUser(req.cookies.user_id, urlDatabase)
+  if (Object.keys(userURLs).includes(req.params.id)) {
+    const shortURL = req.params.id
+    urlDatabase[shortURL].longURL = req.body.newURL
+    res.redirect('/urls')
+  } else {
+      let templateVars = {
+        error: "Only the owner can edit this URL",
+        user: users[req.cookies.user_id]
+      }
+      res.status(400).render('error', templateVars)
+    }
 })
 
 app.post('/login', (req, res) => {
