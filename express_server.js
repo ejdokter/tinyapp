@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser');
-const e = require("express");
+const bcrypt = require('bcryptjs')
 
 const PORT = 8080; // default port 8080
 
@@ -38,6 +38,14 @@ function urlsForUser(id, urlDatabase) {
   return urls
 }
 
+function getUser(email, users) {
+  for (const user in users ) {
+    if (users[user].email === email) {
+      return users[user]
+    }
+  }
+}
+
 const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
@@ -53,12 +61,12 @@ const users = {
   "userRandomID": {
     user_id: "userRandomID", 
     email: "user@example.com", 
-    password: "123"
+    password: bcrypt.hashSync("123", 10)
   },
  "user2RandomID": {
     user_id: "user2RandomID", 
     email: "user2@example.com", 
-    password: "dishwasher-funk"
+    password: bcrypt.hashSync("dishwasher-funk", 10)
   }
 }
 
@@ -194,8 +202,8 @@ app.post('/login', (req, res) => {
   } else if(emailExists(email) === false) {
       res.status(403).send('No account associated with that email found')
   } else {
-      const user = emailExists(email)
-      if(user.password !== password) {
+      const user = getUser(email, users)
+      if(!bcrypt.compareSync(password, user.password)) {
         res.status(403).send('Incorrect Password')
       } else {
           res.cookie('user_id', user.user_id)
@@ -210,12 +218,12 @@ app.post('/login', (req, res) => {
 
 app.post('/logout', (req, res) => {
   res.clearCookie('user_id')
-  res.redirect('/urls')
+  res.redirect('/login')
 })
 
 app.post('/register', (req,res) => {
   const email = req.body.email
-
+  const password = req.body.password
   if(email === "" || email === "") {
     res.status(400).send('Email and password cannot be blank')
   } else if(emailExists(email)) {
@@ -224,8 +232,8 @@ app.post('/register', (req,res) => {
     newUser = generateRandomString()
     users[newUser] = {
       user_id: newUser,
-      email: req.body.email,
-      password: req.body.password
+      email: email,
+      password: bcrypt.hashSync(password, 10)
     }
       res.cookie('user_id', newUser)
       res.redirect('/urls')
