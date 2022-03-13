@@ -6,7 +6,7 @@ TinyApp is a full stack web application built with Node and Express that allows 
 
 Main URLs page
 
-!["Main URLs page"](https://github.com/ejdokter/tinyapp/blob/main/docs/tinyapp-editurl.png?raw=true)
+!["Main URLs page"](https://github.com/ejdokter/tinyapp/blob/main/docs/tinyapp-urls.png?raw=true)
 
 Editing a URL
 
